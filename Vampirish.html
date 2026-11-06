@@ -1,0 +1,664 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Vampirish</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=IM+Fell+DW+Pica:ital@0;1&display=swap">
+<style>
+/* Layout: 24 slots across the top (the shelf). Below it, a square drawing panel on the left and the current lines of the poem on the right. */
+:root{
+  color-scheme:dark;
+  --ink:#0e0709;
+  --panel:#170b0f;
+  --bone:#f2e9de;
+  --dim:#8d7479;
+  --blood:#c4182f;
+  --edge:#4a2530;
+  --hand:'Caveat','Segoe Print','Bradley Hand',cursive;
+  --ui:'IM Fell DW Pica',Georgia,'Times New Roman',serif;
+  --sq:clamp(260px,min(46vw,calc(100vh - 330px)),620px);
+}
+*{box-sizing:border-box}
+html{background:var(--ink)}
+body{margin:0;min-height:100vh;background:radial-gradient(120% 70% at 50% 115%,#2b0b14 0%,var(--ink) 62%) fixed,var(--ink);color:var(--bone);font:16px/1.4 var(--ui);padding-block:18px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));overflow-x:hidden}
+.wob{filter:url(#wob)}
+
+header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;max-width:1240px;margin:0 auto 14px;position:relative;z-index:2}
+h1{margin:0;font:700 clamp(40px,6vw,64px)/1 var(--hand);letter-spacing:.01em}
+h1 span{color:var(--blood)}
+.count{font:italic 15px var(--ui);color:var(--dim);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;justify-content:flex-end}
+.count b{font:700 30px/1 var(--hand);color:var(--bone)}
+.again{font:italic 15px var(--ui);color:var(--bone);background:none;border:1px solid var(--edge);padding:3px 12px;cursor:pointer;border-radius:2px}
+.again:hover{border-color:var(--blood)}
+button:focus-visible,.w:focus-visible{outline:2px dashed var(--blood);outline-offset:4px}
+
+#shelf{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px;max-width:1040px;margin:0 auto 30px;position:relative;z-index:3}
+.slot{position:relative;aspect-ratio:1;padding:0;margin:0;border:1px dashed var(--edge);background:none;border-radius:2px;color:var(--dim);font:italic 13px var(--ui);cursor:default;transition:transform .22s cubic-bezier(.3,1.4,.5,1),box-shadow .22s,border-color .22s}
+.slot canvas{position:absolute;inset:0;width:100%;height:100%;display:none}
+.slot.filled{border:1px solid #6d2c3a;background:var(--panel);cursor:pointer}
+.slot.filled canvas{display:block}
+.slot.filled .n{display:none}
+.slot.filled:hover,.slot.filled:focus-visible{transform:scale(1.16);z-index:6;box-shadow:0 8px 26px #000b;border-color:var(--bone);outline:none}
+
+.stage{display:grid;grid-template-columns:var(--sq) minmax(0,1fr);gap:clamp(24px,5vw,72px);align-items:center;max-width:1240px;margin:0 auto;position:relative;z-index:2}
+.panel{position:relative;width:var(--sq);aspect-ratio:1;max-width:100%;border:1px solid var(--edge);background:var(--panel);transition:box-shadow .25s,border-color .25s}
+.panel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.panel.hot{border-color:var(--blood);box-shadow:0 0 0 3px #c4182f55,0 0 60px #c4182f55}
+.panel.flash{animation:flash .9s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 0 #f2e9de}100%{box-shadow:0 0 0 44px #f2e9de00}}
+.lines{font:400 clamp(30px,3.6vw,54px)/1.28 var(--hand);min-width:0}
+.lines.enter{animation:enter .6s ease-out}
+@keyframes enter{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+.line{display:block}
+.w{display:inline-block;color:var(--dim);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;margin-right:.26em;transition:color .2s,transform .2s}
+.w:hover{color:var(--bone);transform:translateY(-2px)}
+.w.lifted{opacity:.18}
+.w.hint{color:var(--bone);text-shadow:0 0 18px var(--blood)}
+.lines.done{color:var(--bone)}
+.lines.done .w{color:var(--bone);cursor:default;transform:none}
+.lines.done .w.key{color:var(--blood)}
+.note{font:italic 16px var(--ui);color:var(--dim);margin:22px 0 0;transition:opacity .4s}
+.ghost{position:fixed;z-index:50;pointer-events:none;font:700 1em/1.28 var(--hand);color:var(--bone);text-shadow:0 0 22px #c4182f;white-space:nowrap}
+.flyer{position:fixed;z-index:40;pointer-events:none;overflow:hidden;border:1px solid var(--edge);background:var(--panel)}
+.flyer canvas{width:100%;height:100%;display:block}
+.stage.over{grid-template-columns:minmax(0,1fr);text-align:center}
+.stage.over .panel{display:none}
+
+#bg,#fx{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+#bg{z-index:0}
+#fx{z-index:30}
+.fw{position:absolute;left:0;top:0;font:700 1em/1 var(--hand);white-space:nowrap;text-align:center;color:#fff;opacity:1;will-change:transform;transition:color .9s,opacity .9s,font-weight .9s}
+.fw.in{transition:none}
+.fw.dim{color:#cbb9ad;font-weight:400;opacity:.34}
+.fw.dim.hov{color:#fff;font-weight:700;opacity:.95;transition-duration:.22s}
+.fw.gone,.fw.dim.gone{opacity:0;transition:opacity 1.1s}
+
+@media (max-width:900px){#shelf{grid-template-columns:repeat(8,minmax(0,1fr))}}
+@media (max-width:760px){.stage{grid-template-columns:minmax(0,1fr);gap:22px}.panel{width:min(100%,460px);margin:0 auto}}
+@media (max-width:540px){#shelf{grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}}
+@media (prefers-reduced-motion:reduce){.wob{filter:url(#wobStill)}.panel.flash,.lines.enter{animation:none}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="wob" x="-4%" y="-8%" width="108%" height="116%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="1" result="n">
+        <animate attributeName="seed" values="1;6;11;3;8;14;5;9" dur="0.8s" calcMode="discrete" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="3.4" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="wobStill" x="-4%" y="-8%" width="108%" height="116%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="4" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<div id="bg"></div>
+<div id="fx"></div>
+
+<header>
+  <h1>Vampir<span>ish</span></h1>
+  <div class="count"><b id="cnt">0</b> of 24 drawn <button class="again" id="again" hidden>Begin again</button></div>
+</header>
+
+<nav id="shelf" aria-label="Finished panels"></nav>
+
+<main class="stage" id="stage">
+  <div class="panel" id="panel"><canvas id="cv" width="800" height="800" aria-label="Animation panel"></canvas></div>
+  <div>
+    <div class="lines wob" id="lines"></div>
+    <p class="note" id="note">Drag the word that finishes the line onto the picture.</p>
+  </div>
+</main>
+
+<script>
+/* ---------- POEM DATA ----------
+   t   = the line(s) shown for this panel
+   key = the word the reader must drag onto the picture
+   m   = which placeholder drawing to use until your Procreate frames are dropped in
+   h   = accent hue for the placeholder (350 = blood red)                       */
+const N = 24;
+const PANELS = [
+  { t:['In one night,'],                                              key:'night',      m:'moon',  h:350 },
+  { t:['one prick, one bite'],                                        key:'bite',       m:'fangs', h:350 },
+  { t:['My vitality and my fate'],                                    key:'fate',       m:'heart', h:350 },
+  { t:['With mortality and a taste'],                                 key:'taste',      m:'lips',  h:352 },
+  { t:['Of death were gone like virgin glee'],                        key:'death',      m:'skull', h:350 },
+  { t:['Like eyes of youth lose purity'],                             key:'purity',     m:'eye',   h:200 },
+  { t:['You held me as my skin grew pale'],                           key:'pale',       m:'rose',  h:350 },
+  { t:['I held my neck, where teeth impaled'],                        key:'teeth',      m:'fangs', h:355 },
+  { t:['And touched your lips, which drew the blood'],                key:'blood',      m:'drop',  h:350 },
+  { t:['Your act of service, act of love'],                           key:'love',       m:'heart', h:340 },
+  { t:['Act of saving by the Savior'],                                key:'Savior',     m:'moon',  h:40  },
+  { t:['Fatal kiss, meant as a favor'],                               key:'kiss',       m:'lips',  h:350 },
+  { t:["Favored me, but who's this for?"],                            key:'Favored',    m:'die',   h:350 },
+  { t:["You treat me like I'm keeping score"],                        key:'score',      m:'tally', h:350 },
+  { t:["If all I am to you's a game,","A damsel in distress to save,"], key:'game',     m:'die',   h:348 },
+  { t:['Kill me now and end my life,','Save me from eternal strife'], key:'Kill',       m:'stake', h:350 },
+  { t:["But you won't, can't take the loss"],                         key:'loss',       m:'drop',  h:345 },
+  { t:["Can't commit if at your cost"],                               key:'cost',       m:'tally', h:350 },
+  { t:['It matters not, the choice is made','That which I cannot evade'], key:'choice', m:'clock', h:350 },
+  { t:['You have sent death far away','Expecting me to want to stay'],   key:'stay',   m:'skull', h:200 },
+  { t:["Now on loneliness you'll feed",'As your punishment for greed'],  key:'loneliness', m:'moon', h:210 },
+  { t:['For it takes a wooden stake','To overwrite your worst mistake'], key:'stake',  m:'stake', h:350 },
+  { t:['That fleeting moment, short-term bliss'],                     key:'bliss',      m:'rose',  h:20  },
+  { t:['That left us living vampirish.'],                             key:'vampirish',  m:'bat',   h:350 },
+];
+
+/* ---------- PROCREATE FRAMES ----------
+   Set enabled:true once you have sprite sheets in the folder named by dir:
+     frames/01_idle.png, frames/01_story.png ... frames/24_story.png
+   Each sheet is a grid of square frames, read left to right, top to bottom.
+   cols = frames per row. idle/story = frame count in each sheet. */
+const SPRITES = { enabled:false, dir:'frames/', fps:10, cols:6, idle:8, story:16 };
+/* ---------- PLACEHOLDER DRAWINGS ----------
+   Drawn on a 1000x1000 grid and redrawn at 10 fps with a little jitter, so lines "boil" like hand animation.
+   g = { c:ctx, r:random, t:seconds, m:0 idle | 1 story, u:story loop 0..1, P:panel, f:frame, j:jitter }  */
+const TAU = Math.PI * 2, BONE = '#f2e9de', BG = '#170b0f', LOOP = 3.2, FPS = 10;
+const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
+const c01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
+function rngf(seed) { let s = ((seed * 2654435761) >>> 0) || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+
+function ln(g, pts, col = BONE, w = 7, fill, close) {
+  const { c, r, j } = g;
+  c.beginPath();
+  pts.forEach((p, i) => { const x = p[0] + (r() - .5) * j, y = p[1] + (r() - .5) * j; i ? c.lineTo(x, y) : c.moveTo(x, y); });
+  if (close) c.closePath();
+  if (fill) { c.fillStyle = fill; c.fill(); }
+  if (col) { c.strokeStyle = col; c.lineWidth = w; c.stroke(); }
+}
+function ell(g, cx, cy, rx, ry, col, w, fill, a0 = 0, a1 = TAU, n = 28) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; pts.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); }
+  ln(g, pts, col, w, fill, a1 - a0 >= TAU - .01);
+}
+const blood = (g, a = 1, l = 36) => `hsla(${g.P.h},78%,${l}%,${a})`;
+function heartPts(cx, cy, s, n = 36) {
+  const o = [];
+  for (let i = 0; i < n; i++) { const a = i / n * TAU; o.push([cx + 16 * Math.pow(Math.sin(a), 3) * s, cy - (13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a)) * s]); }
+  return o;
+}
+function dropShape(g, cx, cy, s) {
+  const o = [];
+  for (let i = 0; i <= 24; i++) { const a = i / 24 * TAU; o.push([cx + Math.sin(a) * Math.sin(a / 2) * s * 1.1, cy - Math.cos(a) * s]); }
+  ln(g, o, BONE, 6, blood(g, .95, 38), true);
+}
+const STARS = [[120, 140], [260, 330], [820, 180], [700, 380], [900, 520], [150, 560], [380, 90], [610, 120], [60, 400]];
+
+const MOT = {
+  moon(g) {
+    const { c, t, m, u } = g;
+    STARS.forEach(([x, y], i) => { const s = 3 + 3 * Math.abs(Math.sin(t * 2.2 + i * 1.7)); ln(g, [[x - s * 3, y], [x + s * 3, y]], BONE, 3); ln(g, [[x, y - s * 3], [x, y + s * 3]], BONE, 3); });
+    const x = 500, y = m ? 760 - 330 * ease(u * 1.5) : 430 + Math.sin(t * 1.6) * 10;
+    if (m) for (let k = 0; k < 3; k++) { const p = (u * 1.5 + k / 3) % 1; ell(g, x, y, 170 + p * 260, 170 + p * 260, blood(g, .6 * (1 - p), 45), 4); }
+    c.fillStyle = BONE; c.beginPath(); c.arc(x + (g.r() - .5) * 4, y + (g.r() - .5) * 4, 170, 0, TAU); c.fill();
+    c.fillStyle = BG; c.beginPath(); c.arc(x + 80, y - 40, 150, 0, TAU); c.fill();
+    ln(g, [[0, 900], [250, 850], [500, 890], [750, 840], [1000, 880]], BONE, 5);
+  },
+  fangs(g) {
+    const { t, m, u } = g;
+    const d = m ? ease(u * 1.6) * 330 : Math.sin(t * 2) * 14;
+    ln(g, [[330, 1000], [370, 720], [410, 610], [590, 610], [630, 720], [670, 1000]], BONE, 7, '#231016');
+    ln(g, [[340, 90 + d], [660, 90 + d]], BONE, 10);
+    ln(g, [[420, 90 + d], [472, 90 + d], [446, 330 + d]], BONE, 5, BONE, true);
+    ln(g, [[528, 90 + d], [580, 90 + d], [554, 330 + d]], BONE, 5, BONE, true);
+    if (m && u > .6) { const q = (u - .6) / .4; dropShape(g, 446, 650 + q * 220, 20); dropShape(g, 554, 650 + q * 160, 16); }
+  },
+  heart(g) {
+    const { t, m, u } = g;
+    const beat = m ? 1 + .08 * Math.max(0, Math.sin(u * TAU * 3)) + .05 * Math.max(0, Math.sin(u * TAU * 3 - 1)) : 1 + .04 * Math.sin(t * 5);
+    ln(g, heartPts(500, 500, 17 * beat), BONE, 8, blood(g, .85), true);
+    if (m) {
+      const k = Math.round(c01((u - .3) * 2.2) * 3);
+      ln(g, [[500, 360], [470, 430], [520, 480], [480, 560], [510, 640]].slice(0, 2 + k), BONE, 6);
+      ell(g, 500, 500, 300 * ease(u), 300 * ease(u), blood(g, .5 * (1 - u), 50), 5);
+    }
+  },
+  skull(g) {
+    const { t, m, u } = g;
+    const jaw = m ? 45 + 45 * Math.sin(u * TAU * 2) : 6 + 6 * Math.sin(t * 3);
+    ell(g, 500, 400, 200, 220, BONE, 8, '#2a1a1e');
+    ln(g, [[360, 560], [380, 640 + jaw], [620, 640 + jaw], [640, 560]], BONE, 8, '#2a1a1e');
+    ell(g, 420, 420, 52, 60, BONE, 6, '#0b0507'); ell(g, 580, 420, 52, 60, BONE, 6, '#0b0507');
+    ln(g, [[500, 500], [475, 550], [525, 550]], BONE, 6, '#0b0507', true);
+    for (let i = 0; i < 5; i++) ln(g, [[400 + i * 50, 590], [400 + i * 50, 630 + jaw]], BONE, 4);
+    if (m) for (let k = 0; k < 3; k++) { const p = (u + k / 3) % 1; ell(g, 380 + k * 120, 150 - p * 120, 36, 22, `rgba(242,233,222,${.7 * (1 - p)})`, 4, null, Math.PI, TAU); }
+  },
+  eye(g) {
+    const { c, t, m, u } = g;
+    const cyc = t % 3.2;
+    const o = Math.max(.06, m ? 1 : 1 - (cyc > 2.9 ? Math.sin((cyc - 2.9) / .3 * Math.PI) : 0));
+    const up = [], lo = [];
+    for (let i = 0; i <= 20; i++) { const x = 180 + 640 * i / 20, k = Math.max(0, 1 - Math.pow((x - 500) / 320, 2)); up.push([x, 500 - 200 * o * k]); lo.unshift([x, 500 + 150 * o * k]); }
+    c.save(); c.beginPath(); [...up, ...lo].forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); c.clip();
+    c.fillStyle = BONE; c.fillRect(0, 0, 1000, 1000);
+    const look = m ? Math.sin(u * TAU) * 40 : Math.sin(t) * 30;
+    ell(g, 500 + look, 500, 110, 110, '#0b0507', 5, `hsl(${g.P.h},65%,32%)`);
+    const pr = m ? 46 - 26 * ease(u * 2) : 44 + 6 * Math.sin(t * 2);
+    ell(g, 500 + look, 500, pr, pr, null, 0, '#05020a');
+    c.restore();
+    ln(g, [...up, ...lo], BONE, 8, null, true);
+    if (m && u > .4) dropShape(g, 560, 660 + (u - .4) * 330, 22);
+  },
+  drop(g) {
+    const { t, m, u } = g;
+    const y = m ? 170 + 560 * ease(Math.min(1, u * 1.25)) : 360 + Math.sin(t * 2.4) * 10;
+    if (!m) ln(g, [[500, 140], [500, y - 90]], BONE, 5);
+    ln(g, [[380, 140], [620, 140]], BONE, 7);
+    ln(g, [[100, 800], [900, 800]], '#5a3a42', 4);
+    if (!(m && u > .8)) dropShape(g, 500, y, 90);
+    if (m && u > .78) for (let k = 0; k < 3; k++) { const q = c01((u - .78) / .22 * 1.4 - k * .25); if (q > 0 && q < 1) ell(g, 500, 800, 40 + q * 320, 10 + q * 60, blood(g, 1 - q, 45), 5); }
+  },
+  lips(g) {
+    const { t, m, u } = g;
+    const pk = m ? .5 + .5 * Math.sin(u * TAU) : 0, w = 300 - pk * 90, op = m ? 0 : Math.max(0, Math.sin(t * 2)) * 14;
+    const up = [[500 - w, 520], [500 - w * .5, 430], [500 - w * .12, 455], [500, 445], [500 + w * .12, 455], [500 + w * .5, 430], [500 + w, 520]];
+    const lo = [[500 + w * .6, 630 + op], [500, 660 + op], [500 - w * .6, 630 + op]];
+    ln(g, [...up, ...lo], BONE, 8, blood(g, .9, 34), true);
+    ln(g, [[500 - w, 520], [500 - w * .5, 540 + op * .4], [500, 525], [500 + w * .5, 540 + op * .4], [500 + w, 520]], BONE, 6);
+    if (m && u > .5) dropShape(g, 500 + w + 14, 580 + (u - .5) * 300, 20);
+  },
+  die(g) {
+    const { c, t, m, u, f } = g;
+    const roll = m && u < .65;
+    const ang = roll ? u * TAU * 2.2 : Math.sin(t * 1.2) * .08;
+    const by = roll ? -Math.abs(Math.sin(u * TAU * 2.6)) * 160 * (1 - u) : 0;
+    const val = roll ? 1 + (f % 6) : (m ? 1 : 5);
+    const PIPS = [0, [[0, 0]], [[-1, -1], [1, 1]], [[-1, -1], [0, 0], [1, 1]], [[-1, -1], [1, -1], [-1, 1], [1, 1]], [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]]];
+    ell(g, 500, 740, 180 - by * -.2, 26, null, 0, 'rgba(0,0,0,.45)');
+    c.save(); c.translate(500, 520 + by); c.rotate(ang);
+    ln(g, [[-150, -150], [150, -150], [150, 150], [-150, 150]], BONE, 8, '#efe4d8', true);
+    PIPS[val].forEach(([x, y]) => ell(g, x * 85, y * 85, 28, 28, null, 0, val === 1 ? blood(g, 1, 36) : '#2a1219'));
+    c.restore();
+  },
+  tally(g) {
+    const { m, u } = g;
+    const total = m ? Math.round(1 + ease(u * 1.3) * 14) : 7;
+    for (let i = 0; i < total; i++) {
+      const x0 = 130 + Math.floor(i / 5) * 270, k = i % 5;
+      if (k < 4) ln(g, [[x0 + k * 50, 330], [x0 + k * 50 + 6, 650]], BONE, 8);
+      else ln(g, [[x0 - 20, 640], [x0 + 210, 350]], blood(g, 1, 45), 8);
+    }
+    ln(g, [[100, 760], [900, 760]], '#5a3a42', 4);
+  },
+  stake(g) {
+    const { t, m, u } = g;
+    const thr = m ? ease(c01(u * 2.2)) : 0, tip = 360 + thr * 330 + (m ? 0 : Math.sin(t * 2) * 10);
+    const beat = 1 + .04 * Math.sin(t * 6);
+    ln(g, heartPts(500, 760, 11 * beat), BONE, 7, blood(g, .85), true);
+    ln(g, [[470, tip - 520], [530, tip - 520], [516, tip - 60], [500, tip], [484, tip - 60]], BONE, 6, '#7a5230', true);
+    ln(g, [[490, tip - 480], [494, tip - 120]], '#b98a5a', 3);
+    if (m && u > .45) { const q = (u - .45) / .55; for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; ln(g, [[500 + Math.cos(a) * 80, 700 + Math.sin(a) * 80], [500 + Math.cos(a) * (80 + 130 * q), 700 + Math.sin(a) * (80 + 130 * q)]], BONE, 5); } }
+  },
+  bat(g) {
+    const { c, t, m, u } = g;
+    const fl = Math.sin(t * (m ? 16 : 7)) * (m ? .55 : .3);
+    let x = 500, y = 480 + Math.sin(t * 2) * 14;
+    if (m) { x = -100 + 1200 * u; y = 520 - Math.sin(u * Math.PI) * 260 + Math.sin(t * 9) * 20; }
+    ell(g, 720, 260, 110, 110, null, 0, '#2b1118');
+    const wing = s => [[0, 0], [s * 90, -60 - fl * 140], [s * 210, -90 - fl * 190], [s * 170, -20 - fl * 100], [s * 130, 10 - fl * 60], [s * 90, -5 - fl * 30], [s * 50, 30]].map(p => [x + p[0], y + p[1]]);
+    ln(g, wing(1), BONE, 6, '#2a0d14', true); ln(g, wing(-1), BONE, 6, '#2a0d14', true);
+    ell(g, x, y + 8, 28, 40, BONE, 6, '#2a0d14');
+    ln(g, [[x - 18, y - 28], [x - 14, y - 62], [x - 2, y - 34]], BONE, 5, '#2a0d14', true);
+    ln(g, [[x + 18, y - 28], [x + 14, y - 62], [x + 2, y - 34]], BONE, 5, '#2a0d14', true);
+    c.fillStyle = '#e0243c'; [-9, 9].forEach(dx => { c.beginPath(); c.arc(x + dx, y - 6, 4, 0, TAU); c.fill(); });
+  },
+  rose(g) {
+    const { t, m, u } = g;
+    const b = m ? .45 + .55 * ease(u * 1.5) : 1 + .03 * Math.sin(t * 2);
+    ln(g, [[500, 640], [490, 760], [510, 880], [500, 990]], BONE, 8);
+    ln(g, [[498, 800], [400, 760], [380, 820], [470, 830]], BONE, 5, null, true);
+    ell(g, 500, 470, 205 * b, 190 * b, BONE, 7, blood(g, .9, 30));
+    const sp = []; for (let i = 0; i < 90; i++) { const a = i * .22, r = (6 + i * 2.3) * b; sp.push([500 + Math.cos(a) * r, 470 + Math.sin(a) * r * .9]); }
+    ln(g, sp, BONE, 5);
+    if (m && u > .55) for (let k = 0; k < 4; k++) { const p = c01((u - .55) / .45 - k * .08); ell(g, 330 + k * 110 + Math.sin(p * 6 + k) * 30, 680 + p * 280, 22, 13, null, 0, blood(g, 1 - p * .6, 34)); }
+  },
+  clock(g) {
+    const { t, m, u } = g;
+    ell(g, 500, 500, 300, 300, BONE, 9, '#1f1015');
+    for (let i = 0; i < 12; i++) { const a = i / 12 * TAU, e = i % 3 ? 280 : 262; ln(g, [[500 + Math.sin(a) * 250, 500 - Math.cos(a) * 250], [500 + Math.sin(a) * e, 500 - Math.cos(a) * e]], BONE, i % 3 ? 4 : 7); }
+    const mh = m ? u * TAU * 6 : t * .5, hh = m ? mh / 12 : t * .04;
+    ln(g, [[500, 500], [500 + Math.sin(mh) * 230, 500 - Math.cos(mh) * 230]], BONE, 7);
+    ln(g, [[500, 500], [500 + Math.sin(hh) * 150, 500 - Math.cos(hh) * 150]], BONE, 11);
+    ell(g, 500, 500, 16, 16, null, 0, blood(g, 1, 45));
+  },
+};
+
+/* ---------- SPRITE SHEETS (optional) ---------- */
+const SHEETS = {};
+function loadSheets() {
+  for (let i = 0; i < N; i++) {
+    const pad = String(i + 1).padStart(2, '0'); SHEETS[i] = {};
+    ['idle', 'story'].forEach(k => { const img = new Image(); img.src = SPRITES.dir + pad + '_' + k + '.png'; SHEETS[i][k] = { img, frames: SPRITES[k], cols: SPRITES.cols, fps: SPRITES.fps }; });
+  }
+}
+function drawSprite(c, S, t, mode) {
+  const s = S[mode ? 'story' : 'idle'];
+  if (!s || !s.img.complete || !s.img.naturalWidth) return false;
+  const rows = Math.ceil(s.frames / s.cols), fw = s.img.naturalWidth / s.cols, fh = s.img.naturalHeight / rows, k = Math.floor(t * s.fps) % s.frames;
+  c.drawImage(s.img, (k % s.cols) * fw, Math.floor(k / s.cols) * fh, fw, fh, 0, 0, 1000, 1000);
+  return true;
+}
+
+function drawPanel(c, size, i, t, mode, u, f) {
+  const P = PANELS[i], g = { c, r: rngf(f * 7919 + i * 104729 + 13), t, m: mode, u, P, f, j: mode ? 7 : 5 };
+  c.save(); c.setTransform(size / 1000, 0, 0, size / 1000, 0, 0);
+  c.fillStyle = BG; c.fillRect(0, 0, 1000, 1000);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  if (!(SHEETS[i] && drawSprite(c, SHEETS[i], t, mode))) MOT[P.m](g);
+  c.restore();
+}
+/* ---------- ENGINE ---------- */
+const $ = s => document.querySelector(s);
+const norm = s => s.toLowerCase().replace(/[^a-z]/g, '');
+const STORY_MS = 4800;
+const stage = $('#stage'), panel = $('#panel'), cv = $('#cv'), lines = $('#lines'), note = $('#note');
+const shelf = $('#shelf'), cnt = $('#cnt'), again = $('#again'), bg = $('#bg'), fx = $('#fx');
+const sc = cv.getContext('2d');
+let cur = 0, mode = 'idle', storyT0 = 0, misses = 0, drag = null, doneN = 0;
+const tf = (x, y, s = 1.06) => `translate(${x}px,${y}px) scale(${s})`;
+
+/* shelf of 24 slots */
+const slots = [];
+for (let i = 0; i < N; i++) {
+  const b = document.createElement('button');
+  b.className = 'slot'; b.disabled = true; b.setAttribute('aria-label', 'Panel ' + (i + 1));
+  b.innerHTML = '<span class="n">' + (i + 1) + '</span><canvas width="160" height="160"></canvas>';
+  b.addEventListener('click', () => exude(i, b));
+  shelf.append(b);
+  const k = b.querySelector('canvas');
+  slots.push({ b, c: k.getContext('2d'), on: false });
+}
+
+/* load a panel's lines into the right column */
+function loadPanel(i) {
+  cur = i; mode = 'idle'; misses = 0;
+  const P = PANELS[i];
+  lines.textContent = '';
+  P.t.forEach(txt => {
+    const d = document.createElement('div'); d.className = 'line';
+    txt.split(' ').forEach(wd => {
+      const s = document.createElement('span'); s.className = 'w'; s.textContent = wd; s.tabIndex = 0;
+      d.append(s, ' ');
+    });
+    lines.append(d);
+  });
+  lines.className = 'lines wob enter';
+  setTimeout(() => lines.classList.remove('enter'), 700);
+  note.style.opacity = doneN < 3 ? 1 : 0;
+}
+
+/* drag a word */
+lines.addEventListener('pointerdown', e => {
+  const w = e.target.closest('.w');
+  if (!w || mode !== 'idle' || drag) return;
+  e.preventDefault();
+  const r = w.getBoundingClientRect(), cs = getComputedStyle(w);
+  const g = document.createElement('div');
+  g.className = 'ghost wob'; g.textContent = w.textContent;
+  Object.assign(g.style, { left: r.left + 'px', top: r.top + 'px', fontSize: cs.fontSize, transform: tf(0, 0) });
+  document.body.append(g); w.classList.add('lifted');
+  drag = { w, g, id: e.pointerId, sx: e.clientX, sy: e.clientY, dx: 0, dy: 0, hot: false };
+});
+window.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  drag.dx = e.clientX - drag.sx; drag.dy = e.clientY - drag.sy;
+  drag.g.style.transform = tf(drag.dx, drag.dy);
+  const gr = drag.g.getBoundingClientRect(), pr = panel.getBoundingClientRect();
+  const x = gr.left + gr.width / 2, y = gr.top + gr.height / 2;
+  drag.hot = x > pr.left - 20 && x < pr.right + 20 && y > pr.top - 20 && y < pr.bottom + 20;
+  panel.classList.toggle('hot', drag.hot);
+});
+const endDrag = e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const d = drag; drag = null; panel.classList.remove('hot');
+  if (d.hot && e.type === 'pointerup') attempt(d); else goHome(d);
+};
+window.addEventListener('pointerup', endDrag);
+window.addEventListener('pointercancel', endDrag);
+lines.addEventListener('keydown', e => {
+  const w = e.target.closest('.w');
+  if (!w || mode !== 'idle' || (e.key !== 'Enter' && e.key !== ' ')) return;
+  e.preventDefault(); attempt({ w, g: null, dx: 0, dy: 0 });
+});
+
+function attempt(d) { norm(d.w.textContent) === norm(PANELS[cur].key) ? success(d) : wrong(d); }
+
+function goHome(d) {
+  d.g.animate([{ transform: tf(d.dx, d.dy) }, { transform: tf(0, 0, 1) }], { duration: 320, easing: 'cubic-bezier(.3,1.3,.5,1)', fill: 'forwards' })
+    .onfinish = () => { d.g.remove(); d.w.classList.remove('lifted'); };
+}
+function wrong(d) {
+  misses++;
+  if (misses >= 2) lines.querySelectorAll('.w').forEach(x => { if (norm(x.textContent) === norm(PANELS[cur].key)) x.classList.add('hint'); });
+  const el = d.g || d.w;
+  const a = el.animate([{ translate: '0 0' }, { translate: '-12px 0' }, { translate: '12px 0' }, { translate: '-8px 0' }, { translate: '0 0' }], { duration: 360 });
+  a.onfinish = () => { if (d.g) goHome(d); };
+}
+function success(d) {
+  mode = 'story'; storyT0 = performance.now() / 1000;
+  lines.classList.add('done');
+  lines.querySelectorAll('.w').forEach(x => { x.classList.remove('lifted', 'hint'); x.removeAttribute('tabindex'); });
+  d.w.classList.add('key');
+  note.style.opacity = 0;
+  panel.classList.remove('flash'); void panel.offsetWidth; panel.classList.add('flash');
+  if (d.g) {
+    const pr = panel.getBoundingClientRect(), gr = d.g.getBoundingClientRect();
+    const ex = pr.left + pr.width / 2 - (gr.left + gr.width / 2), ey = pr.top + pr.height / 2 - (gr.top + gr.height / 2);
+    d.g.animate([{ transform: tf(d.dx, d.dy), opacity: 1 }, { transform: tf(d.dx + ex, d.dy + ey, .15), opacity: 0 }], { duration: 420, easing: 'ease-in', fill: 'forwards' })
+      .onfinish = () => d.g.remove();
+  }
+  setTimeout(toShelf, STORY_MS);
+}
+
+/* send the finished panel up to its slot, then show the next one */
+function toShelf() {
+  if (mode !== 'story') return;
+  const i = cur, pr = panel.getBoundingClientRect(), sr = slots[i].b.getBoundingClientRect();
+  const fl = document.createElement('div'); fl.className = 'flyer';
+  const cp = document.createElement('canvas'); cp.width = cp.height = 400;
+  cp.getContext('2d').drawImage(cv, 0, 0, 400, 400); fl.append(cp);
+  Object.assign(fl.style, { left: pr.left + 'px', top: pr.top + 'px', width: pr.width + 'px', height: pr.height + 'px', transformOrigin: '0 0' });
+  document.body.append(fl);
+  fl.animate([{ transform: 'translate(0,0) scale(1)' }, { transform: `translate(${sr.left - pr.left}px,${sr.top - pr.top}px) scale(${sr.width / pr.width})` }],
+    { duration: 850, easing: 'cubic-bezier(.65,0,.25,1)', fill: 'forwards' })
+    .onfinish = () => { slots[i].on = true; slots[i].b.classList.add('filled'); slots[i].b.disabled = false; fl.remove(); };
+  doneN++; cnt.textContent = doneN;
+  if (i < N - 1) loadPanel(i + 1); else finale();
+}
+function finale() {
+  mode = 'over'; stage.classList.add('over');
+  lines.className = 'lines done'; lines.textContent = 'Every panel is drawn. Click one to pull its lines out.';
+  note.style.opacity = 0; again.hidden = false;
+}
+again.addEventListener('click', () => {
+  fadeBg(); doneN = 0; cnt.textContent = 0; again.hidden = true; stage.classList.remove('over');
+  slots.forEach(s => { s.on = false; s.b.classList.remove('filled'); s.b.disabled = true; });
+  loadPanel(0);
+});
+
+/* click a finished panel: its words come out in reading order, hold together for a moment,
+   then drift apart behind the page, bumping into walls and into each other.
+   A second click on the same panel fades only that panel's words. */
+const groups = new Map();            /* panel index -> group of words */
+const bodies = [];                   /* words that are currently drifting */
+const HOLD = 1.7, DUR = 0.95, STAG = 0.15;
+const REDUCED = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+let mouse = null, hoverB = null;
+
+function put(b, s = 1) {
+  b.el.style.transform = `translate3d(${(b.x - b.w / 2).toFixed(1)}px,${(b.y - b.h / 2).toFixed(1)}px,0) rotate(${b.rot.toFixed(2)}deg) scale(${s})`;
+}
+
+/* find a clear spot for the assembled line, away from the big panel and the shelf */
+function placeSpot(gw, gh) {
+  const W = innerWidth, H = innerHeight, pad = 12;
+  const avoid = [[panel, 1], [shelf, 1], [lines, .3]].map(([e, k]) => [e.getBoundingClientRect(), k]).filter(([r]) => r.width > 0);
+  let best = { x: W / 2, y: H / 2 }, bo = Infinity;
+  for (let k = 0; k < 60; k++) {
+    const x = gw / 2 + 20 + Math.random() * Math.max(0, W - gw - 40), y = gh / 2 + 20 + Math.random() * Math.max(0, H - gh - 40);
+    const L = x - gw / 2 - pad, R = x + gw / 2 + pad, T = y - gh / 2 - pad, B = y + gh / 2 + pad;
+    let o = 0;
+    for (const [r, wt] of avoid) o += wt * Math.max(0, Math.min(R, r.right) - Math.max(L, r.left)) * Math.max(0, Math.min(B, r.bottom) - Math.max(T, r.top));
+    if (o < bo) { bo = o; best = { x, y }; if (o === 0) break; }
+  }
+  return best;
+}
+
+function exude(i, slotEl) {
+  if (!slots[i].on) return;
+  if (groups.has(i)) { removeGroup(i); return; }      /* second click */
+  const r = slotEl.getBoundingClientRect(), ox = r.left + r.width / 2, oy = r.top + r.height / 2, W = innerWidth;
+  let size = Math.max(24, Math.min(42, W * 0.027)) * (0.92 + Math.random() * 0.16);
+  const G = { i, rows: [], all: [], phase: 'in', t0: performance.now() / 1000, ox, oy, cx: 0, cy: 0, tHold: 0 };
+  PANELS[i].t.forEach(txt => {
+    const row = txt.split(' ').map(wd => {
+      const el = document.createElement('span');
+      el.className = 'fw in wob'; el.textContent = wd; el.style.opacity = 0;
+      fx.append(el);
+      const b = { el, g: G, x: ox, y: oy, tx: 0, ty: 0, vx: 0, vy: 0, w: 0, h: 0, hw: 0, hh: 0, s0: 0, rot: 0, rt: 0, t1: 0, idx: G.all.length, ph: 'in', ph0: Math.random() * TAU };
+      G.all.push(b); return b;
+    });
+    G.rows.push(row);
+  });
+  /* measure at full weight and freeze each box, so hovering (bolder text) never changes a hitbox */
+  const measure = () => {
+    G.all.forEach(b => {
+      const s = b.el.style; s.fontSize = size + 'px'; s.width = ''; s.height = '';
+      b.w = b.el.offsetWidth + 2; b.h = b.el.offsetHeight || size;
+      s.width = b.w + 'px'; s.height = b.h + 'px'; b.hw = b.w * .47; b.hh = b.h * .4;
+    });
+    const gap = size * .28; let gw = 0;
+    G.rows.forEach(row => { gw = Math.max(gw, row.reduce((a, b) => a + b.w, 0) + gap * (row.length - 1)); });
+    return { gap, lh: size * 1.12, gw };
+  };
+  let L = measure();
+  if (L.gw > W - 40) { size *= (W - 40) / L.gw; L = measure(); }
+  const c = placeSpot(L.gw, G.rows.length * L.lh);
+  G.cx = c.x; G.cy = c.y;
+  G.rows.forEach((row, rr) => {
+    let x = -(row.reduce((a, b) => a + b.w, 0) + L.gap * (row.length - 1)) / 2;
+    row.forEach(b => { b.tx = c.x + x + b.w / 2; b.ty = c.y + (rr - (G.rows.length - 1) / 2) * L.lh; x += b.w + L.gap; put(b, .3); });
+  });
+  groups.set(i, G);
+}
+
+function toDrift(G, now) {
+  G.phase = 'drift';
+  G.all.forEach(b => bg.append(b.el));                /* move behind the page */
+  void bg.offsetWidth;                                /* so the dimming below animates */
+  G.all.forEach(b => {
+    b.el.classList.add('dim');
+    const dx = b.x - G.cx, dy = b.y - G.cy;
+    const a = Math.hypot(dx, dy) < 4 ? Math.random() * TAU : Math.atan2(dy, dx) + (Math.random() - .5) * 1.1;
+    b.s0 = (14 + Math.random() * 16) * (REDUCED ? .4 : 1);
+    b.vx = Math.cos(a) * b.s0; b.vy = Math.sin(a) * b.s0;
+    b.rt = (Math.random() - .5) * 10; b.t1 = now; b.ph = 'drift';
+    bodies.push(b);
+  });
+}
+
+function removeGroup(i) {
+  const G = groups.get(i); if (!G) return;
+  groups.delete(i);
+  G.all.forEach(b => {
+    const k = bodies.indexOf(b); if (k >= 0) bodies.splice(k, 1);
+    if (hoverB === b) hoverB = null;
+    b.ph = 'gone';
+    b.el.classList.remove('hov', 'in'); b.el.style.opacity = '';
+    b.el.classList.add('gone');
+    setTimeout(() => b.el.remove(), 1300);
+  });
+}
+function fadeBg() { [...groups.keys()].forEach(removeGroup); }
+
+window.addEventListener('pointermove', e => {
+  if (e.pointerType === 'touch') return;
+  const t = document.elementFromPoint ? document.elementFromPoint(e.clientX, e.clientY) : null;
+  mouse = { x: e.clientX, y: e.clientY, blocked: !!(t && t.closest('.panel,.slot,.again,.w,.flyer')) };
+});
+document.documentElement.addEventListener('mouseleave', () => { mouse = null; });
+
+function stepWords(now, dt) {
+  /* appear in order, hold, then release */
+  groups.forEach(G => {
+    const age = now - G.t0;
+    if (G.phase === 'in') {
+      G.all.forEach(b => {
+        const p = c01((age - b.idx * STAG) / DUR), e = ease(p);
+        b.x = G.ox + (b.tx - G.ox) * e; b.y = G.oy + (b.ty - G.oy) * e;
+        b.el.style.opacity = c01(p * 2); put(b, .3 + .7 * e);
+      });
+      if (age > (G.all.length - 1) * STAG + DUR) {
+        G.phase = 'hold'; G.tHold = now;
+        G.all.forEach(b => { b.x = b.tx; b.y = b.ty; b.el.classList.remove('in'); b.el.style.opacity = ''; put(b); });
+      }
+    } else if (G.phase === 'hold' && now - G.tHold > HOLD) toDrift(G, now);
+  });
+
+  const W = innerWidth, H = innerHeight;
+  for (const b of bodies) {
+    const m = ease((now - b.t1) / 4);                 /* start from rest and speed up gently */
+    const ang = (Math.random() - .5) * 1.4 * dt, ca = Math.cos(ang), sa = Math.sin(ang);
+    const nvx = b.vx * ca - b.vy * sa; b.vy = b.vx * sa + b.vy * ca; b.vx = nvx;
+    const sp = Math.hypot(b.vx, b.vy) || 1, k = 1 + (b.s0 / sp - 1) * Math.min(1, dt * .7);
+    b.vx *= k; b.vy *= k;
+    b.x += b.vx * dt * m; b.y += b.vy * dt * m;
+    const x0 = b.w / 2 + 6, x1 = W - b.w / 2 - 6, y0 = b.h / 2 + 6, y1 = H - b.h / 2 - 6;
+    if (x0 >= x1) b.x = W / 2; else if (b.x < x0) { b.x = x0; b.vx = Math.abs(b.vx); } else if (b.x > x1) { b.x = x1; b.vx = -Math.abs(b.vx); }
+    if (y0 >= y1) b.y = H / 2; else if (b.y < y0) { b.y = y0; b.vy = Math.abs(b.vy); } else if (b.y > y1) { b.y = y1; b.vy = -Math.abs(b.vy); }
+    b.rot = (b.rt + Math.sin(now * .4 + b.ph0) * 1.8) * m;
+  }
+  /* word against word: separate along the shallow axis and trade velocity along it */
+  for (let i = 0; i < bodies.length; i++) {
+    const a = bodies[i];
+    for (let j = i + 1; j < bodies.length; j++) {
+      const b = bodies[j], dx = a.x - b.x, dy = a.y - b.y;
+      const ox = a.hw + b.hw - Math.abs(dx), oy = a.hh + b.hh - Math.abs(dy);
+      if (ox <= 0 || oy <= 0) continue;
+      if (ox < oy) {
+        const s = dx < 0 ? -1 : 1; a.x += s * ox / 2; b.x -= s * ox / 2;
+        if ((a.vx - b.vx) * s < 0) { const v = a.vx; a.vx = b.vx; b.vx = v; }
+      } else {
+        const s = dy < 0 ? -1 : 1; a.y += s * oy / 2; b.y -= s * oy / 2;
+        if ((a.vy - b.vy) * s < 0) { const v = a.vy; a.vy = b.vy; b.vy = v; }
+      }
+    }
+  }
+  /* hover: the word under the pointer turns bold and bright */
+  let hit = null;
+  if (mouse && !mouse.blocked && !drag) {
+    let bd = 1e12;
+    for (const b of bodies) {
+      const dx = Math.abs(mouse.x - b.x), dy = Math.abs(mouse.y - b.y);
+      if (dx <= b.w / 2 && dy <= b.h / 2 && dx * dx + dy * dy < bd) { bd = dx * dx + dy * dy; hit = b; }
+    }
+  }
+  if (hit !== hoverB) {
+    if (hoverB) hoverB.el.classList.remove('hov');
+    if (hit) hit.el.classList.add('hov');
+    hoverB = hit;
+  }
+  for (const b of bodies) put(b);
+}
+
+/* animation loop: redraw at 10 fps so the lines boil */
+let lastF = -1, lastNw = performance.now() / 1000;
+function tick(ms) {
+  const nw = performance.now() / 1000; stepWords(nw, Math.min(.05, Math.max(0, nw - lastNw))); lastNw = nw;
+  const t = ms / 1000, f = Math.floor(t * FPS);
+  if (f !== lastF && !document.hidden) {
+    lastF = f;
+    if (mode !== 'over') {
+      if (mode === 'story') { const ts = t - storyT0; drawPanel(sc, 800, cur, ts, 1, (ts % LOOP) / LOOP, f); }
+      else drawPanel(sc, 800, cur, t, 0, 0, f);
+    }
+    slots.forEach((s, i) => { if (s.on) { const ts = t + i * .43; drawPanel(s.c, 160, i, ts, 1, (ts % LOOP) / LOOP, f); } });
+  }
+  requestAnimationFrame(tick);
+}
+if (SPRITES.enabled) loadSheets();
+loadPanel(0);
+requestAnimationFrame(tick);
+</script>
+
+</body></html>
