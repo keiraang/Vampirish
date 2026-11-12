@@ -1,0 +1,109 @@
+/* =====================================================================
+   LOOK AND LAYOUT
+   =====================================================================
+   Layout: 22 slots across the top (the shelf). Below it, a square drawing panel
+   on the left and the current lines of the poem on the right. */
+
+/* ---------- Colours and fonts ----------
+   Every colour is a name here, sampled from your animations, so you can retheme the
+   whole site by changing these few lines. */
+:root{
+  color-scheme:dark;
+  --ink:#0b101b;          /* deep navy, darker than the pictures */
+  --panel:#192131;        /* the pictures' background */
+  --bone:#dfe5f2;         /* pale slate, like the necklace and highlights */
+  --lit:#f1f4fb;
+  --dim:#6f7d9c;
+  --faint:#9ca9c6;
+  --blood:#b0222c;
+  --edge:#33415e;         /* the skin's slate blue, darkened */
+  --maroon:#2a0a10;       /* the dress */
+  --type:'Special Elite','Courier New',Courier,monospace;   /* typewriter face, with Courier as a back-up */
+  --ui:'Courier Prime','Courier New',Courier,monospace;
+  --sq:clamp(260px,min(46vw,calc(100vh - 330px)),620px);    /* size of the square panel: grows with the screen, between 260 and 620 px */
+}
+*{box-sizing:border-box}
+html{background:var(--ink)}
+/* The page: navy with a faint maroon glow rising from the bottom (the dress colour) */
+body{margin:0;min-height:100vh;background:radial-gradient(120% 70% at 50% 115%,var(--maroon) 0%,var(--ink) 62%) fixed,var(--ink);color:var(--bone);font:16px/1.4 var(--ui);padding-block:18px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));overflow-x:hidden}
+/* Anything with class "wob" gets the jiggle (the filter is defined in the SVG near the bottom of this file) */
+.wob{filter:url(#wob)}
+
+/* ---------- Header: title and the "0 of 22 drawn" counter ---------- */
+header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;max-width:1240px;margin:0 auto 14px;position:relative;z-index:2}
+h1{margin:0;font:400 clamp(34px,5vw,54px)/1 var(--type);letter-spacing:.02em}
+h1 span{color:var(--blood)}   /* the "ish" in Vampirish is red */
+.count{font:italic 15px var(--ui);color:var(--dim);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;justify-content:flex-end}
+.count b{font:400 30px/1 var(--type);color:var(--bone)}
+.again{font:italic 15px var(--ui);color:var(--bone);background:none;border:1px solid var(--edge);padding:3px 12px;cursor:pointer;border-radius:2px}
+.again:hover{border-color:var(--blood)}
+/* Keyboard focus ring (shown only when tabbing with a keyboard) */
+button:focus-visible,.w:focus-visible{outline:2px dashed var(--blood);outline-offset:4px}
+
+/* ---------- The shelf: a row of 22 slots along the top ---------- */
+#shelf{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:8px;max-width:1040px;margin:0 auto 30px;position:relative;z-index:3}
+/* An empty slot: a solid outline with its number */
+.slot{position:relative;aspect-ratio:1;padding:0;margin:0;border:1px solid var(--edge);background:none;border-radius:2px;color:var(--dim);font:italic 13px var(--ui);cursor:default;transition:transform .22s cubic-bezier(.3,1.4,.5,1),box-shadow .22s,border-color .22s}
+.slot canvas{position:absolute;inset:0;width:100%;height:100%;display:none}   /* the little picture is hidden until the slot is filled */
+/* A finished slot: shows its looping picture and can be clicked */
+.slot.filled{border:1px solid #4a5a7c;background:var(--panel);cursor:pointer}
+.slot.filled canvas{display:block}
+.slot.filled .n{display:none}
+/* Hover (or keyboard focus) on a finished slot: grows a little */
+.slot.filled:hover,.slot.filled:focus-visible{transform:scale(1.16);z-index:6;box-shadow:0 8px 26px #000c;border-color:var(--bone);outline:none}
+
+/* ---------- The stage: picture on the left, poem on the right ---------- */
+.stage{display:grid;grid-template-columns:var(--sq) minmax(0,1fr);gap:clamp(24px,5vw,72px);align-items:center;max-width:1240px;margin:0 auto;position:relative;z-index:2}
+.panel{position:relative;width:var(--sq);aspect-ratio:1;max-width:100%;border:1px solid var(--edge);background:var(--panel);transition:box-shadow .25s,border-color .25s}
+.panel canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.panel.hot{border-color:var(--blood);box-shadow:0 0 0 3px #b0222c66,0 0 60px #b0222c55}   /* red glow while a word is held over the picture */
+.panel.flash{animation:flash .9s ease-out}                                                  /* pale ripple when the right word lands */
+@keyframes flash{0%{box-shadow:0 0 0 0 #dfe5f2}100%{box-shadow:0 0 0 44px #dfe5f200}}
+
+/* ---------- The poem text ---------- */
+.lines{font:400 clamp(20px,2.3vw,34px)/1.6 var(--type);min-width:0}
+.lines.enter{animation:enter .6s ease-out}                  /* slides in when a new panel loads */
+@keyframes enter{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+.line{display:block}
+.line.rest{padding-left:2ch}                                /* the revealed line is indented, like the continuation lines in the poem */
+.line.rest .w{opacity:0;animation:wIn .6s ease-out forwards;animation-delay:calc(var(--k) * 170ms + .25s)}   /* each word fades in a beat after the last */
+@keyframes wIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+/* A word you can drag: dim until hovered */
+.w{display:inline-block;color:var(--dim);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;margin-right:0;transition:color .2s,transform .2s}
+.w:hover{color:var(--lit);transform:translateY(-2px)}
+.w.lifted{opacity:.18}                                      /* the original word, faded while its copy is being dragged */
+.w.hint{color:var(--lit);text-shadow:0 0 18px var(--blood)} /* glows after two wrong drops */
+/* After the right word lands: everything turns bright and stops being draggable, the keyword is red */
+.lines.done{color:var(--bone)}
+.lines.done .w{color:var(--bone);cursor:default;transform:none}
+.lines.done .w.key{color:var(--blood)}
+.note{font:italic 16px var(--ui);color:var(--dim);margin:22px 0 0;transition:opacity .4s}   /* the "drag the word..." hint */
+.ghost{position:fixed;z-index:50;pointer-events:none;font:400 1em/1.6 var(--type);color:var(--lit);-webkit-text-stroke-width:.7px;text-shadow:0 0 22px var(--blood);white-space:nowrap}   /* the copy of the word that follows your pointer */
+.flyer{position:fixed;z-index:40;pointer-events:none;overflow:hidden;border:1px solid var(--edge);background:var(--panel)}   /* the picture flying up to the shelf */
+.flyer canvas{width:100%;height:100%;display:block}
+/* When every panel is finished: hide the big picture and centre the closing message */
+.stage.over{grid-template-columns:minmax(0,1fr);text-align:center}
+.stage.over .panel{display:none}
+
+/* ---------- The floating words ----------
+   Two layers cover the whole screen and let clicks pass through:
+     #fx sits above the page (z-index 30): new words appear here and assemble into the line
+     #bg sits behind the page (z-index 0): after the line lets go, the words move here and drift */
+#bg,#fx{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+#bg{z-index:0}
+#fx{z-index:30}
+/* .fw = a floating word. The typewriter font has one weight, so "bold" is done with a thin outline around the letters. */
+.fw{position:absolute;left:0;top:0;font:400 1em/1 var(--type);white-space:nowrap;text-align:center;color:var(--lit);-webkit-text-stroke-width:.7px;opacity:1;will-change:transform;transition:color .9s,opacity .9s,-webkit-text-stroke-width .9s}
+.fw.in{transition:none}                                                                       /* while flying in, the code sets opacity itself every frame */
+.fw.dim{color:var(--faint);-webkit-text-stroke-width:0;opacity:.36}                           /* drifting: dim and thin */
+.fw.dim.hov{color:var(--lit);-webkit-text-stroke-width:.9px;opacity:.95;transition-duration:.22s}   /* hovered: bright and bold */
+.fw.gone,.fw.dim.gone{opacity:0;transition:opacity 1.1s}                                      /* removed: fades out */
+
+/* ---------- Smaller screens ---------- */
+@media (max-width:900px){#shelf{grid-template-columns:repeat(8,minmax(0,1fr))}}                                         /* fewer slots per row */
+@media (max-width:760px){.stage{grid-template-columns:minmax(0,1fr);gap:22px}.panel{width:min(100%,460px);margin:0 auto}}   /* poem moves below the picture */
+@media (max-width:540px){#shelf{grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}}
+/* If someone's device is set to "reduce motion": the jiggle stops changing and the flash/slide-in are off */
+@media (prefers-reduced-motion:reduce){.wob{filter:url(#wobStill)}.panel.flash,.lines.enter{animation:none}}
+/* make the HTML "hidden" attribute always win */
+[hidden]{display:none!important}
