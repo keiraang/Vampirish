@@ -1,7 +1,7 @@
 /* =====================================================================
    LOOK AND LAYOUT
    =====================================================================
-   Layout: 22 slots across the top (the shelf). Below it, a square drawing panel
+   Layout: 21 slots across the top (the shelf). Below it, a square drawing panel
    on the left and the current lines of the poem on the right. */
 
 /* ---------- Colours and fonts ----------
@@ -29,7 +29,7 @@ body{margin:0;min-height:100vh;background:radial-gradient(120% 70% at 50% 115%,v
 /* Anything with class "wob" gets the jiggle (the filter is defined in the SVG near the bottom of this file) */
 .wob{filter:url(#wob)}
 
-/* ---------- Header: title and the "0 of 22 drawn" counter ---------- */
+/* ---------- Header: title and the "0 of 21 drawn" counter ---------- */
 header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;max-width:1240px;margin:0 auto 14px;position:relative;z-index:2}
 h1{margin:0;font:400 clamp(34px,5vw,54px)/1 var(--type);letter-spacing:.02em}
 h1 span{color:var(--blood)}   /* the "ish" in Vampirish is red */
@@ -40,7 +40,7 @@ h1 span{color:var(--blood)}   /* the "ish" in Vampirish is red */
 /* Keyboard focus ring (shown only when tabbing with a keyboard) */
 button:focus-visible,.w:focus-visible{outline:2px dashed var(--blood);outline-offset:4px}
 
-/* ---------- The shelf: a row of 22 slots along the top ---------- */
+/* ---------- The shelf: a row of 21 slots along the top ---------- */
 #shelf{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:8px;max-width:1040px;margin:0 auto 30px;position:relative;z-index:3}
 /* An empty slot: a solid outline with its number */
 .slot{position:relative;aspect-ratio:1;padding:0;margin:0;border:1px solid var(--edge);background:none;border-radius:2px;color:var(--dim);font:italic 13px var(--ui);cursor:default;transition:transform .22s cubic-bezier(.3,1.4,.5,1),box-shadow .22s,border-color .22s}
